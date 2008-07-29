@@ -17,7 +17,7 @@
 Summary: SELinux policy configuration
 Name: selinux-policy
 Version: 3.2.5
-Release: %mkrel 1
+Release: %mkrel 3
 License: GPLv2+
 Group: System/Base
 Source: serefpolicy-%{version}.tgz
