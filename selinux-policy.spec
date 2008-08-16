@@ -11,38 +11,40 @@
 %define BUILD_MLS 1
 %endif
 %define POLICYVER 21
-%define libsepolver 2.0.3-2
-%define POLICYCOREUTILSVER 2.0.23-1
-%define CHECKPOLICYVER 2.0.3-1
+%define libsepolver 2.0.20-1
+%define POLICYCOREUTILSVER 2.0.42-1
+%define CHECKPOLICYVER 2.0.16-1
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 3.2.5
-Release: %mkrel 4
+Version: 3.5.1
+Release: %mkrel 1
 License: GPLv2+
 Group: System/Base
 Source: serefpolicy-%{version}.tgz
-patch: policy-20071130.patch
+patch: policy-20080710.patch
 Source1: modules-targeted.conf
 Source2: booleans-targeted.conf
 Source3: Makefile.devel
 Source4: setrans-targeted.conf
 Source5: modules-mls.conf
-Source6: booleans-mls.conf        
+Source6: booleans-mls.conf	
 Source8: setrans-mls.conf
 Source9: modules-olpc.conf
-Source10: booleans-olpc.conf        
+Source10: booleans-olpc.conf	
 Source11: setrans-olpc.conf
 Source12: securetty_types-olpc
 Source13: policygentool
 Source14: securetty_types-targeted
 Source15: securetty_types-mls
 
-Url: http://serefpolicy.sourceforge.net
+Url: http://oss.tresys.com/projects/refpolicy
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildArch: noarch
-BuildRequires: gawk python checkpolicy >= %{CHECKPOLICYVER} m4 policycoreutils >= %{POLICYCOREUTILSVER}
-Requires(pre): policycoreutils >= %{POLICYCOREUTILSVER}
-#Requires(pre): semanage >= 2.0.14-3
+BuildRequires: python gawk checkpolicy >= %{CHECKPOLICYVER} m4 policycoreutils >= %{POLICYCOREUTILSVER}
+Requires(pre): policycoreutils >= %{POLICYCOREUTILSVER} semanage >= 2.0.14-3
+Requires: checkpolicy >= %{CHECKPOLICYVER} m4 
+Obsoletes: selinux-policy-devel < %{version}-%{release}
+Provides: selinux-policy-devel = %{version}-%{release}
 
 %description 
 SELinux Base package
@@ -51,22 +53,11 @@ SELinux Base package
 %{_mandir}/*
 %doc %{_usr}/share/doc/%{name}-%{version}
 %dir %{_usr}/share/selinux
+%dir %{_usr}/share/selinux/devel
+%dir %{_usr}/share/selinux/devel/include
 %dir %{_sysconfdir}/selinux
 %ghost %config(noreplace) %{_sysconfdir}/selinux/config
 %ghost %{_sysconfdir}/sysconfig/selinux
-
-%package devel
-Summary: SELinux policy development
-Group: System/Base
-Requires: checkpolicy >= %{CHECKPOLICYVER} m4 
-Requires: selinux-policy = %{version}-%{release} policycoreutils >= %{POLICYCOREUTILSVER}
-
-%description devel
-SELinux Policy development package
-
-%files devel
-%dir %{_usr}/share/selinux/devel
-%dir %{_usr}/share/selinux/devel/include
 %{_usr}/share/selinux/devel/include/*
 %{_usr}/share/selinux/devel/Makefile
 %{_usr}/share/selinux/devel/policygentool
@@ -74,12 +65,8 @@ SELinux Policy development package
 %{_usr}/share/selinux/devel/policy.*
 %attr(755,root,root) %{_usr}/share/selinux/devel/policyhelp
 
-%check devel
+%check
 /usr/bin/sepolgen-ifgen -i %{buildroot}%{_usr}/share/selinux/devel/include -o /dev/null
-
-%post devel
-[ -x /usr/bin/sepolgen-ifgen ] && /usr/bin/sepolgen-ifgen 
-exit 0
 
 %define setupCmds() \
 make UNK_PERMS=%5 NAME=%1 TYPE=%2 DISTRO=%{distro} DIRECT_INITRC=%3 MONOLITHIC=%{monolithic} POLY=%4 MLS_CATS=1024 MCS_CATS=1024 bare \
@@ -129,6 +116,7 @@ echo -n > %{buildroot}%{_sysconfdir}/selinux/%1/contexts/customizable_types \
 %config %{_sysconfdir}/selinux/%1/contexts/customizable_types \
 %config(noreplace) %{_sysconfdir}/selinux/%1/contexts/securetty_types \
 %config(noreplace) %{_sysconfdir}/selinux/%1/contexts/dbus_contexts \
+%config %{_sysconfdir}/selinux/%1/contexts/x_contexts \
 %config %{_sysconfdir}/selinux/%1/contexts/default_contexts \
 %config(noreplace) %{_sysconfdir}/selinux/%1/contexts/default_type \
 %config(noreplace) %{_sysconfdir}/selinux/%1/contexts/failsafe_context \
@@ -147,32 +135,31 @@ echo -n > %{buildroot}%{_sysconfdir}/selinux/%1/contexts/customizable_types \
 
 %define saveFileContext() \
 if [ -s /etc/selinux/config ]; then \
-        . %{_sysconfdir}/selinux/config; \
-        FILE_CONTEXT=%{_sysconfdir}/selinux/%1/contexts/files/file_contexts; \
-        if [ "${SELINUXTYPE}" == %1 -a -f ${FILE_CONTEXT} ]; then \
-                cp -f ${FILE_CONTEXT} ${FILE_CONTEXT}.pre; \
-        fi \
+	. %{_sysconfdir}/selinux/config; \
+	FILE_CONTEXT=%{_sysconfdir}/selinux/%1/contexts/files/file_contexts; \
+	if [ "${SELINUXTYPE}" == %1 -a -f ${FILE_CONTEXT} ]; then \
+		cp -f ${FILE_CONTEXT} ${FILE_CONTEXT}.pre; \
+	fi \
 fi
 
 %define loadpolicy() \
 ( cd /usr/share/selinux/%1; \
 semodule -b base.pp %{expand:%%moduleList %1} -s %1; \
-);\
-rm -f %{_sysconfdir}/selinux/%1/policy/policy.*.rpmnew;
+); \
 
 %define relabel() \
 . %{_sysconfdir}/selinux/config; \
 FILE_CONTEXT=%{_sysconfdir}/selinux/%1/contexts/files/file_contexts; \
 selinuxenabled; \
 if [ $? == 0  -a "${SELINUXTYPE}" == %1 -a -f ${FILE_CONTEXT}.pre ]; then \
-        fixfiles -C ${FILE_CONTEXT}.pre restore; \
-        restorecon -R /var/log /var/run 2> /dev/null; \
-        rm -f ${FILE_CONTEXT}.pre; \
+	fixfiles -C ${FILE_CONTEXT}.pre restore; \
+	restorecon -R /var/log /var/run 2> /dev/null; \
+	rm -f ${FILE_CONTEXT}.pre; \
 fi; 
 
 %description
 SELinux Reference Policy - modular.
-Based off of reference policy: Checked out revision 2560.
+Based off of reference policy: Checked out revision  2714.
 
 %build
 
@@ -231,46 +218,44 @@ chmod +x %{buildroot}%{_usr}/share/selinux/devel/policyhelp
 
 %post
 if [ ! -s /etc/selinux/config ]; then
-        #
-        #        New install so we will default to targeted policy
-        #
-        echo "
+	#
+	#	New install so we will default to targeted policy
+	#
+	echo "
 # This file controls the state of SELinux on the system.
 # SELINUX= can take one of these three values:
-#        enforcing - SELinux security policy is enforced.
-#        permissive - SELinux prints warnings instead of enforcing.
-#        disabled - No SELinux policy is loaded.
+#	enforcing - SELinux security policy is enforced.
+#	permissive - SELinux prints warnings instead of enforcing.
+#	disabled - No SELinux policy is loaded.
 SELINUX=enforcing
 # SELINUXTYPE= can take one of these two values:
-#        targeted - Targeted processes are protected,
-#        mls - Multi Level Security protection.
+#	targeted - Targeted processes are protected,
+#	mls - Multi Level Security protection.
 SELINUXTYPE=targeted 
-# SETLOCALDEFS= Check local definition changes
-SETLOCALDEFS=0 
 
 " > /etc/selinux/config
 
-        ln -sf ../selinux/config /etc/sysconfig/selinux 
-        restorecon /etc/selinux/config 2> /dev/null || :
+	ln -sf ../selinux/config /etc/sysconfig/selinux 
+	restorecon /etc/selinux/config 2> /dev/null || :
 else
-        . /etc/selinux/config
-        # if first time update booleans.local needs to be copied to sandbox
-        [ -f /etc/selinux/${SELINUXTYPE}/booleans.local ] && mv /etc/selinux/${SELINUXTYPE}/booleans.local /etc/selinux/targeted/modules/active/
-        [ -f /etc/selinux/${SELINUXTYPE}/seusers ] && cp -f /etc/selinux/${SELINUXTYPE}/seusers /etc/selinux/${SELINUXTYPE}/modules/active/seusers
-        grep -q "^SETLOCALDEFS" /etc/selinux/config || echo -n "
-# SETLOCALDEFS= Check local definition changes
-SETLOCALDEFS=0 
+	. /etc/selinux/config
+	# if first time update booleans.local needs to be copied to sandbox
+	[ -f /etc/selinux/${SELINUXTYPE}/booleans.local ] && mv /etc/selinux/${SELINUXTYPE}/booleans.local /etc/selinux/targeted/modules/active/
+	[ -f /etc/selinux/${SELINUXTYPE}/seusers ] && cp -f /etc/selinux/${SELINUXTYPE}/seusers /etc/selinux/${SELINUXTYPE}/modules/active/seusers
+	grep -q "^SETLOCALDEFS" /etc/selinux/config || echo -n "
 ">> /etc/selinux/config
 fi
+[ -x /usr/bin/sepolgen-ifgen ] && /usr/bin/sepolgen-ifgen 
+exit 0
 
 %postun
 if [ $1 = 0 ]; then
-        setenforce 0 2> /dev/null
-        if [ ! -s /etc/selinux/config ]; then
-                echo "SELINUX=disabled" > /etc/selinux/config
-        else
-                sed -i 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
-        fi
+	setenforce 0 2> /dev/null
+	if [ ! -s /etc/selinux/config ]; then
+		echo "SELINUX=disabled" > /etc/selinux/config
+	else
+		sed -i 's/^SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
+	fi
 fi
 exit 0
 
@@ -291,35 +276,38 @@ SELinux Reference policy targeted base module.
 %saveFileContext targeted
 
 %post targeted
-semodule -s targeted -r moilscanner 2>/dev/null
+if [ $1 -eq 1 ]; then
 %loadpolicy targeted
-
-if [ $1 = 1 ]; then
-semanage user -a -P unconfined -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u 
-semanage login -m -s "unconfined_u" -r s0-s0:c0.c1023 __default__ 2> /dev/null
-semanage login -m -s "unconfined_u" -r s0-s0:c0.c1023 root 2> /dev/null
-semanage user -a -P guest -R guest_r guest_u
-semanage user -a -P xguest -R xguest_r xguest_u 
+semanage user -a -S targeted -P user -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u 
+semanage login -m -S targeted  -s "unconfined_u" -r s0-s0:c0.c1023 __default__
+semanage login -m -S targeted  -s "unconfined_u" -r s0-s0:c0.c1023 root
+semanage user -a -S targeted  -P user -R guest_r guest_u
+semanage user -a -S targeted  -P user -R xguest_r xguest_u 
 restorecon -R /root /var/log /var/run 2> /dev/null
 else
+semodule -s targeted -r moilscanner 2>/dev/null
+%loadpolicy targeted
 %relabel targeted
 fi
 exit 0
 
 
-%triggerpostun targeted -- selinux-policy-targeted < 3.2.4-3.fc9
+%triggerpostun targeted -- selinux-policy-targeted < 3.2.5-9.fc9
+. /etc/selinux/config
+[ "${SELINUXTYPE}" != "targeted" ] && exit 0
 setsebool -P use_nfs_home_dirs=1
-semanage user -l | grep -s unconfined_u 
-if [ $? == 0 ]; then
-   semanage user -m -P unconfined -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u  2> /dev/null
+semanage user -l | grep -s unconfined_u > /dev/null
+if [ $? -eq 0 ]; then
+   semanage user -m -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u
 else
-   semanage user -a -P unconfined -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u  2> /dev/null
+   semanage user -a -P user -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u
 fi
 seuser=`semanage login -l | grep __default__ | awk '{ print $2 }'`
-[ $seuser == "system_u" ]   && semanage login -m -s "unconfined_u"  -r s0-s0:c0.c1023 __default__
+[ "$seuser" != "unconfined_u" ]  && semanage login -m -s "unconfined_u"  -r s0-s0:c0.c1023 __default__
 seuser=`semanage login -l | grep root | awk '{ print $2 }'`
-[ $seuser == "system_u" ]   && semanage login -m -s "unconfined_u"  -r s0-s0:c0.c1023 root
+[ "$seuser" == "system_u" ] && semanage login -m -s "unconfined_u"  -r s0-s0:c0.c1023 root
 restorecon -R /root /etc/selinux/targeted 2> /dev/null
+semodule -r qmail 2> /dev/null
 exit 0
 
 %files targeted
@@ -346,7 +334,7 @@ SELinux Reference policy olpc base module.
 %post olpc 
 %loadpolicy olpc
 
-if [ $1 != 1 ]; then
+if [ $1 -ne 1 ]; then
 %relabel olpc
 fi
 exit 0
