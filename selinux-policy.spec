@@ -4,19 +4,22 @@
 %if %{?BUILD_TARGETED:0}%{!?BUILD_TARGETED:1}
 %define BUILD_TARGETED 1
 %endif
+%if %{?BUILD_MINIMUM:0}%{!?BUILD_MINIMUM:1}
+%define BUILD_MINIMUM 1
+%endif
 %if %{?BUILD_OLPC:0}%{!?BUILD_OLPC:1}
 %define BUILD_OLPC 0
 %endif
 %if %{?BUILD_MLS:0}%{!?BUILD_MLS:1}
 %define BUILD_MLS 1
 %endif
-%define POLICYVER 21
+%define POLICYVER 23
 %define libsepolver 2.0.20-1
-%define POLICYCOREUTILSVER 2.0.42-1
+%define POLICYCOREUTILSVER 2.0.54-1
 %define CHECKPOLICYVER 2.0.16-1
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 3.5.1
+Version: 3.5.13
 Release: %mkrel 1
 License: GPLv2+
 Group: System/Base
@@ -36,12 +39,17 @@ Source12: securetty_types-olpc
 Source13: policygentool
 Source14: securetty_types-targeted
 Source15: securetty_types-mls
+Source16: modules-minimum.conf
+Source17: booleans-minimum.conf
+Source18: setrans-minimum.conf
+Source19: securetty_types-minimum
 
-Url: http://oss.tresys.com/projects/refpolicy
+Url: http://serefpolicy.sourceforge.net
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildArch: noarch
-BuildRequires: python gawk checkpolicy >= %{CHECKPOLICYVER} m4 policycoreutils >= %{POLICYCOREUTILSVER}
+BuildRequires: python gawk checkpolicy >= %{CHECKPOLICYVER} m4 policycoreutils >= %{POLICYCOREUTILSVER} bzip2
 Requires(pre): policycoreutils >= %{POLICYCOREUTILSVER} semanage >= 2.0.14-3
+Requires(post): bzip2 mktemp
 Requires: checkpolicy >= %{CHECKPOLICYVER} m4 
 Obsoletes: selinux-policy-devel < %{version}-%{release}
 Provides: selinux-policy-devel = %{version}-%{release}
@@ -51,7 +59,6 @@ SELinux Base package
 
 %files 
 %{_mandir}/*
-%doc %{_usr}/share/doc/%{name}-%{version}
 %dir %{_usr}/share/selinux
 %dir %{_usr}/share/selinux/devel
 %dir %{_usr}/share/selinux/devel/include
@@ -63,6 +70,17 @@ SELinux Base package
 %{_usr}/share/selinux/devel/policygentool
 %{_usr}/share/selinux/devel/example.*
 %{_usr}/share/selinux/devel/policy.*
+
+%package doc
+Summary: SELinux policy documentation
+Group: System/Base
+Requires(pre): selinux-policy = %{version}-%{release}
+
+%description doc
+SELinux policy documentation package
+
+%files doc
+%doc %{_usr}/share/doc/%{name}-%{version}
 %attr(755,root,root) %{_usr}/share/selinux/devel/policyhelp
 
 %check
@@ -77,9 +95,12 @@ cp -f $RPM_SOURCE_DIR/booleans-%1.conf ./policy/booleans.conf \
 %define moduleList() %([ -f %{_sourcedir}/modules-%{1}.conf ] && \
 awk '$1 !~ "/^#/" && $2 == "=" && $3 == "module" { printf "-i %%s.pp ", $1 }' %{_sourcedir}/modules-%{1}.conf )
 
+%define bzmoduleList() %([ -f %{_sourcedir}/modules-%{1}.conf ] && \
+awk '$1 !~ "/^#/" && $2 == "=" && $3 == "module" { printf " ../%%s.pp.bz2 ", $1 }' %{_sourcedir}/modules-%{1}.conf )
+
 %define installCmds() \
 make UNK_PERMS=%5 NAME=%1 TYPE=%2 DISTRO=%{distro} DIRECT_INITRC=%3 MONOLITHIC=%{monolithic} POLY=%4 MLS_CATS=1024 MCS_CATS=1024 base.pp \
-make UNK_PERMS=%5 NAME=%1 TYPE=%2 DISTRO=%{distro} DIRECT_INITRC=%3 MONOLITHIC=%{monolithic} POLY=%4 MLS_CATS=1024 MCS_CATS=1024 modules \
+make validate UNK_PERMS=%5 NAME=%1 TYPE=%2 DISTRO=%{distro} DIRECT_INITRC=%3 MONOLITHIC=%{monolithic} POLY=%4 MLS_CATS=1024 MCS_CATS=1024 modules \
 make UNK_PERMS=%5 NAME=%1 TYPE=%2 DISTRO=%{distro} DIRECT_INITRC=%3 MONOLITHIC=%{monolithic} DESTDIR=%{buildroot} POLY=%4 MLS_CATS=1024 MCS_CATS=1024 install \
 make UNK_PERMS=%5 NAME=%1 TYPE=%2 DISTRO=%{distro} DIRECT_INITRC=%3 MONOLITHIC=%{monolithic} DESTDIR=%{buildroot} POLY=%4 MLS_CATS=1024 MCS_CATS=1024 install-appconfig \
 #%{__cp} *.pp %{buildroot}/%{_usr}/share/selinux/%1/ \
@@ -96,12 +117,13 @@ touch %{buildroot}%{_sysconfdir}/selinux/%1/contexts/files/file_contexts.homedir
 install -m0644 $RPM_SOURCE_DIR/securetty_types-%1 %{buildroot}%{_sysconfdir}/selinux/%1/contexts/securetty_types \
 install -m0644 $RPM_SOURCE_DIR/setrans-%1.conf %{buildroot}%{_sysconfdir}/selinux/%1/setrans.conf \
 echo -n > %{buildroot}%{_sysconfdir}/selinux/%1/contexts/customizable_types \
+bzip2 %{buildroot}/%{_usr}/share/selinux/%1/*.pp
 %nil
 
 %define fileList() \
 %defattr(-,root,root) \
 %dir %{_usr}/share/selinux/%1 \
-%{_usr}/share/selinux/%1/*.pp \
+%{_usr}/share/selinux/%1/*.pp.bz2 \
 %dir %{_sysconfdir}/selinux/%1 \
 %config(noreplace) %{_sysconfdir}/selinux/%1/setrans.conf \
 %ghost %{_sysconfdir}/selinux/%1/seusers \
@@ -130,6 +152,7 @@ echo -n > %{buildroot}%{_sysconfdir}/selinux/%1/contexts/customizable_types \
 %dir %{_sysconfdir}/selinux/%1/contexts/users \
 %config(noreplace) %{_sysconfdir}/selinux/%1/contexts/users/root \
 %config(noreplace) %{_sysconfdir}/selinux/%1/contexts/users/guest_u \
+%config(noreplace) %{_sysconfdir}/selinux/%1/contexts/users/xguest_u \
 %config(noreplace) %{_sysconfdir}/selinux/%1/contexts/users/user_u \
 %config(noreplace) %{_sysconfdir}/selinux/%1/contexts/users/staff_u 
 
@@ -142,10 +165,23 @@ if [ -s /etc/selinux/config ]; then \
 	fi \
 fi
 
+%define loadminpolicy() \
+tempdir=`mktemp -d /usr/share/selinux/%1/tmpXXXX`; \
+( cd $tempdir; \
+cp ../base.pp.bz2 ../unconfined.pp.bz2 .; \
+bunzip2 *; \
+semodule -b base.pp -i unconfined.pp -s %1; \
+); \
+rm -rf $tempdir; \
+
 %define loadpolicy() \
-( cd /usr/share/selinux/%1; \
+tempdir=`mktemp -d /usr/share/selinux/%1/tmpXXXX`; \
+( cd $tempdir; \
+cp ../base.pp.bz2 %{expand:%%bzmoduleList %1} .; \
+bunzip2 *; \
 semodule -b base.pp %{expand:%%moduleList %1} -s %1; \
 ); \
+rm -rf $tempdir; \
 
 %define relabel() \
 . %{_sysconfdir}/selinux/config; \
@@ -159,7 +195,7 @@ fi;
 
 %description
 SELinux Reference Policy - modular.
-Based off of reference policy: Checked out revision  2714.
+Based off of reference policy: Checked out revision  2837.
 
 %build
 
@@ -189,6 +225,13 @@ make clean
 %installCmds targeted mcs n y allow
 %endif
 
+%if %{BUILD_MINIMUM}
+# Build minimum policy
+# Commented out because only minimum ref policy currently builds
+%setupCmds minimum mcs n y allow
+%installCmds minimum mcs n y allow
+%endif
+
 %if %{BUILD_MLS}
 # Build mls policy
 %setupCmds mls mls n y deny
@@ -196,8 +239,8 @@ make clean
 %endif
 
 %if %{BUILD_OLPC}
-# Build targeted policy
-# Commented out because only targeted ref policy currently builds
+# Build olpc policy
+# Commented out because only olpc ref policy currently builds
 %setupCmds olpc mcs n y allow
 %installCmds olpc mcs n y allow
 %endif
@@ -209,7 +252,7 @@ install -m 755 $RPM_SOURCE_DIR/policygentool %{buildroot}%{_usr}/share/selinux/d
 install -m 644 $RPM_SOURCE_DIR/Makefile.devel %{buildroot}%{_usr}/share/selinux/devel/Makefile
 install -m 644 doc/example.* %{buildroot}%{_usr}/share/selinux/devel/
 install -m 644 doc/policy.* %{buildroot}%{_usr}/share/selinux/devel/
-echo  "htmlview file:///usr/share/doc/selinux-policy-%{version}/html/index.html"> %{buildroot}%{_usr}/share/selinux/devel/policyhelp
+echo  "xdg-open file:///usr/share/doc/selinux-policy-%{version}/html/index.html"> %{buildroot}%{_usr}/share/selinux/devel/policyhelp
 chmod +x %{buildroot}%{_usr}/share/selinux/devel/policyhelp
 
 
@@ -268,6 +311,7 @@ Obsoletes: selinux-policy-targeted-sources < 2
 Requires(pre): policycoreutils >= %{POLICYCOREUTILSVER}
 Requires(pre): coreutils
 Requires(pre): selinux-policy = %{version}-%{release}
+Conflicts:  audispd-plugins <= 1.7.7-1
 
 %description targeted
 SELinux Reference policy targeted base module.
@@ -278,14 +322,19 @@ SELinux Reference policy targeted base module.
 %post targeted
 if [ $1 -eq 1 ]; then
 %loadpolicy targeted
-semanage user -a -S targeted -P user -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u 
-semanage login -m -S targeted  -s "unconfined_u" -r s0-s0:c0.c1023 __default__
-semanage login -m -S targeted  -s "unconfined_u" -r s0-s0:c0.c1023 root
-semanage user -a -S targeted  -P user -R guest_r guest_u
-semanage user -a -S targeted  -P user -R xguest_r xguest_u 
+semanage -S targeted -i - << __eof
+user -a -P user -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u 
+user -a -P user -R guest_r guest_u
+user -a -P user -R xguest_r xguest_u 
+__eof
+semanage -S targeted -i - << __eof
+login -m  -s unconfined_u -r s0-s0:c0.c1023 __default__
+login -m  -s unconfined_u -r s0-s0:c0.c1023 root
+__eof
 restorecon -R /root /var/log /var/run 2> /dev/null
 else
 semodule -s targeted -r moilscanner 2>/dev/null
+semodule -s targeted -r gamin 2>/dev/null
 %loadpolicy targeted
 %relabel targeted
 fi
@@ -312,15 +361,51 @@ exit 0
 
 %files targeted
 %config(noreplace) %{_sysconfdir}/selinux/targeted/contexts/users/unconfined_u
-%config(noreplace) %{_sysconfdir}/selinux/targeted/contexts/users/xguest_u
 %fileList targeted
+%endif
+
+%if %{BUILD_MINIMUM}
+%package minimum
+Summary: SELinux minimum base policy
+Provides: selinux-policy-base
+Group: System/Base
+Requires(pre): policycoreutils >= %{POLICYCOREUTILSVER}
+Requires(pre): coreutils
+Requires(pre): selinux-policy = %{version}-%{release}
+
+%description minimum
+SELinux Reference policy minimum base module.
+
+%pre minimum
+%saveFileContext minimum
+
+%post minimum
+if [ $1 -eq 1 ]; then
+%loadminpolicy minimum
+semanage -S minimum -i - << __eof
+user -a -P user -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u 
+__eof
+semanage -S minimum -i - << __eof
+login -m  -s unconfined_u -r s0-s0:c0.c1023 __default__
+login -m  -s unconfined_u -r s0-s0:c0.c1023 root
+__eof
+restorecon -R /root /var/log /var/run 2> /dev/null
+else
+%loadminpolicy minimum
+%relabel minimum
+fi
+exit 0
+
+%files minimum
+%config(noreplace) %{_sysconfdir}/selinux/minimum/contexts/users/unconfined_u
+%fileList minimum
 %endif
 
 %if %{BUILD_OLPC}
 %package olpc 
 Summary: SELinux olpc base policy
 Group: System/Base
-Provides: selinux-policy-base = %{version}-%{release}
+Provides: selinux-policy-base
 Requires(pre): policycoreutils >= %{POLICYCOREUTILSVER}
 Requires(pre): coreutils
 Requires(pre): selinux-policy = %{version}-%{release}
@@ -370,7 +455,7 @@ fi
 exit 0
 
 %files mls
+%config(noreplace) %{_sysconfdir}/selinux/mls/contexts/users/unconfined_u
 %fileList mls
 
 %endif
-
