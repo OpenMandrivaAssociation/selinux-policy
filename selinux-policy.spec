@@ -15,25 +15,25 @@
 %endif
 %define POLICYVER 23
 %define libsepolver 2.0.20-1
-%define POLICYCOREUTILSVER 2.0.54-1
+%define POLICYCOREUTILSVER 2.0.54
 %define CHECKPOLICYVER 2.0.16-1
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 3.5.13
+Version: 3.6.2
 Release: %mkrel 1
 License: GPLv2+
 Group: System/Base
 Source: serefpolicy-%{version}.tgz
-patch: policy-20080710.patch
+patch: policy-20090105.patch
 Source1: modules-targeted.conf
 Source2: booleans-targeted.conf
 Source3: Makefile.devel
 Source4: setrans-targeted.conf
 Source5: modules-mls.conf
-Source6: booleans-mls.conf	
+Source6: booleans-mls.conf
 Source8: setrans-mls.conf
 Source9: modules-olpc.conf
-Source10: booleans-olpc.conf	
+Source10: booleans-olpc.conf
 Source11: setrans-olpc.conf
 Source12: securetty_types-olpc
 Source13: policygentool
@@ -50,14 +50,14 @@ BuildArch: noarch
 BuildRequires: python gawk checkpolicy >= %{CHECKPOLICYVER} m4 policycoreutils >= %{POLICYCOREUTILSVER} bzip2 python-selinux
 Requires(pre): policycoreutils >= %{POLICYCOREUTILSVER} semanage >= 2.0.14-3
 Requires(post): bzip2 mktemp
-Requires: checkpolicy >= %{CHECKPOLICYVER} m4 
+Requires: checkpolicy >= %{CHECKPOLICYVER} m4
 Obsoletes: selinux-policy-devel < %{version}-%{release}
 Provides: selinux-policy-devel = %{version}-%{release}
 
-%description 
+%description
 SELinux Base package
 
-%files 
+%files
 %{_mandir}/*
 %dir %{_usr}/share/selinux
 %dir %{_usr}/share/selinux/devel
@@ -154,7 +154,7 @@ bzip2 %{buildroot}/%{_usr}/share/selinux/%1/*.pp
 %config(noreplace) %{_sysconfdir}/selinux/%1/contexts/users/guest_u \
 %config(noreplace) %{_sysconfdir}/selinux/%1/contexts/users/xguest_u \
 %config(noreplace) %{_sysconfdir}/selinux/%1/contexts/users/user_u \
-%config(noreplace) %{_sysconfdir}/selinux/%1/contexts/users/staff_u 
+%config(noreplace) %{_sysconfdir}/selinux/%1/contexts/users/staff_u
 
 %define saveFileContext() \
 if [ -s /etc/selinux/config ]; then \
@@ -191,7 +191,7 @@ if [ $? == 0  -a "${SELINUXTYPE}" == %1 -a -f ${FILE_CONTEXT}.pre ]; then \
 	fixfiles -C ${FILE_CONTEXT}.pre restore; \
 	restorecon -R /var/log /var/run 2> /dev/null; \
 	rm -f ${FILE_CONTEXT}.pre; \
-fi; 
+fi;
 
 %description
 SELinux Reference Policy - modular.
@@ -199,7 +199,7 @@ Based off of reference policy: Checked out revision  2837.
 
 %build
 
-%prep 
+%prep
 %setup -n serefpolicy-%{version} -q
 %patch -p1
 
@@ -274,11 +274,11 @@ SELINUX=enforcing
 # SELINUXTYPE= can take one of these two values:
 #	targeted - Targeted processes are protected,
 #	mls - Multi Level Security protection.
-SELINUXTYPE=targeted 
+SELINUXTYPE=targeted
 
 " > /etc/selinux/config
 
-	ln -sf ../selinux/config /etc/sysconfig/selinux 
+	ln -sf ../selinux/config /etc/sysconfig/selinux
 	restorecon /etc/selinux/config 2> /dev/null || :
 else
 	. /etc/selinux/config
@@ -288,7 +288,7 @@ else
 	grep -q "^SETLOCALDEFS" /etc/selinux/config || echo -n "
 ">> /etc/selinux/config
 fi
-[ -x /usr/bin/sepolgen-ifgen ] && /usr/bin/sepolgen-ifgen 
+[ -x /usr/bin/sepolgen-ifgen ] && /usr/bin/sepolgen-ifgen
 exit 0
 
 %postun
@@ -323,9 +323,9 @@ SELinux Reference policy targeted base module.
 if [ $1 -eq 1 ]; then
 %loadpolicy targeted
 semanage -S targeted -i - << __eof
-user -a -P user -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u 
+user -a -P user -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u
 user -a -P user -R guest_r guest_u
-user -a -P user -R xguest_r xguest_u 
+user -a -P user -R xguest_r xguest_u
 __eof
 semanage -S targeted -i - << __eof
 login -m  -s unconfined_u -r s0-s0:c0.c1023 __default__
@@ -383,7 +383,7 @@ SELinux Reference policy minimum base module.
 if [ $1 -eq 1 ]; then
 %loadminpolicy minimum
 semanage -S minimum -i - << __eof
-user -a -P user -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u 
+user -a -P user -R "unconfined_r system_r" -r s0-s0:c0.c1023 unconfined_u
 __eof
 semanage -S minimum -i - << __eof
 login -m  -s unconfined_u -r s0-s0:c0.c1023 __default__
@@ -402,7 +402,7 @@ exit 0
 %endif
 
 %if %{BUILD_OLPC}
-%package olpc 
+%package olpc
 Summary: SELinux olpc base policy
 Group: System/Base
 Provides: selinux-policy-base
@@ -410,13 +410,13 @@ Requires(pre): policycoreutils >= %{POLICYCOREUTILSVER}
 Requires(pre): coreutils
 Requires(pre): selinux-policy = %{version}-%{release}
 
-%description olpc 
+%description olpc
 SELinux Reference policy olpc base module.
 
-%pre olpc 
+%pre olpc
 %saveFileContext olpc
 
-%post olpc 
+%post olpc
 %loadpolicy olpc
 
 if [ $1 -ne 1 ]; then
@@ -430,7 +430,7 @@ exit 0
 %endif
 
 %if %{BUILD_MLS}
-%package mls 
+%package mls
 Summary: SELinux mls base policy
 Group: System/Base
 Provides: selinux-policy-base = %{version}-%{release}
@@ -440,13 +440,13 @@ Requires(pre): policycoreutils >= %{POLICYCOREUTILSVER}
 Requires(pre): coreutils
 Requires(pre): selinux-policy = %{version}-%{release}
 
-%description mls 
+%description mls
 SELinux Reference policy mls base module.
 
-%pre mls 
+%pre mls
 %saveFileContext mls
 
-%post mls 
+%post mls
 %loadpolicy mls
 
 if [ $1 != 1 ]; then
