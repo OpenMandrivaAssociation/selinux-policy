@@ -19,7 +19,7 @@
 %define CHECKPOLICYVER 2.0.16-1
 Summary: SELinux policy configuration
 Name: selinux-policy
-Version: 3.6.2
+Version: 3.6.3
 Release: %mkrel 1
 License: GPLv2+
 Group: System/Base
