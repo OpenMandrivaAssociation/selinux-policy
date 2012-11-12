@@ -1,0 +1,20 @@
+sources:
+  "booleans-minimum.conf:"	749e53284970833aac6b67e19be3fa339cfe3d06
+  "booleans-mls.conf:"	9b244407ebcc31889e7a6645653f34df4c0e9b0f
+  "booleans-olpc.conf:"	51ca5c32a5d80a29d772143221702320e3845d3c
+  "booleans-targeted.conf:"	749e53284970833aac6b67e19be3fa339cfe3d06
+  "Makefile.devel:"	ff1504598a7acc372aaa5e62d76cd463b67dc468
+  "modules-minimum.conf:"	c1d1cedc4f90eead79c25ae15fd46a75fd68ac61
+  "modules-mls.conf:"	ab49a8389a3b15bbfe3e329d8d2662846e9c2f2a
+  "modules-olpc.conf:"	929227c5dd1a3ababfec6fcf7f4eb9ce834e2599
+  "modules-targeted.conf:"	c1d1cedc4f90eead79c25ae15fd46a75fd68ac61
+  "policygentool:"	7f2bf46f2a145303962c9d7b5bfe6278f0bf0e52
+  "securetty_types-minimum:"	a79d41c4ad0c35c359d7d76d94cfdb5a98b952f2
+  "securetty_types-mls:"	26157aea0f0a7c467acede8509c2b763924a7715
+  "securetty_types-olpc:"	da39a3ee5e6b4b0d3255bfef95601890afd80709
+  "securetty_types-targeted:"	a79d41c4ad0c35c359d7d76d94cfdb5a98b952f2
+  "serefpolicy-3.6.6.tgz:"	af5dab0fa84190a394852e8ddd65af2513120474
+  "setrans-minimum.conf:"	49b9610dfd0991969023fd793479822f371c5b25
+  "setrans-mls.conf:"	82d901454e6333a2c0fe060874a044ebb9e3931e
+  "setrans-olpc.conf:"	49b9610dfd0991969023fd793479822f371c5b25
+  "setrans-targeted.conf:"	49b9610dfd0991969023fd793479822f371c5b25
