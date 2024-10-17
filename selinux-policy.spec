@@ -44,7 +44,7 @@ Source17: booleans-minimum.conf
 Source18: setrans-minimum.conf
 Source19: securetty_types-minimum
 
-Url: http://serefpolicy.sourceforge.net
+Url: https://serefpolicy.sourceforge.net
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildArch: noarch
 BuildRequires: python gawk checkpolicy >= %{CHECKPOLICYVER} m4 policycoreutils >= %{POLICYCOREUTILSVER} bzip2 python-selinux
