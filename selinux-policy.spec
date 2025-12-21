@@ -47,6 +47,7 @@ Source19: securetty_types-minimum
 Url: https://serefpolicy.sourceforge.net
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 BuildArch: noarch
+BuildRequires:	make
 BuildRequires: python gawk checkpolicy >= %{CHECKPOLICYVER} m4 policycoreutils >= %{POLICYCOREUTILSVER} bzip2 python-selinux
 Requires(pre): policycoreutils >= %{POLICYCOREUTILSVER} semanage >= 2.0.14-3
 Requires(post): bzip2 mktemp
